@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-app-backend-deployment
+  namespace: todo-app-backend
+  labels:
+    app: todo-app-backend
+spec:
+  selector:
+    matchLabels:
+      app: todo-app-backend
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: todo-app-backend
+      labels:
+        app: todo-app-backend
+    spec:
+      containers:
+        - name: todo-app-backend
+          image: vinitkumar01/k8s-todo:latest
+          # env: this will be used of the keys are defined one by one like PORT in configmap.yml and DATABASE_URL in secret.yml but here we don't need this as we will mount the full .env using the key .env in secret.yml
+          #   - name: PORT
+          #     valueFrom:
+          #       configMapKeyRef:
+          #         name: todo-app-backend-config
+          #         key: PORT
+          #   - name: DATABASE_URL
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: todo-app-backend-secret
+          #         key: DATABASE_URL
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: env-file
+              readOnly: true
+              mountPath: "/app/.env"
+              # mounts ONLY the `.env` key from the secret as a single file at /app/.env
+              # subPath ensures only this file is mounted instead of the whole secret
+              # IMPORTANT: mounting directly to "/app/" (without subPath) would overwrite the entire /app directory,
+              # hiding your application code and causing the container to crash
+              subPath: .env
+      volumes:
+        - name: env-file
+          secret:
+            secretName: todo-app-backend-secret
